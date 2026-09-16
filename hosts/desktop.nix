@@ -64,6 +64,8 @@ in
       uid = 1000;
       extraGroups = [
         "networkmanager"
+        "render"
+        "video"
         "wheel"
       ];
       hashedPasswordFile = lib.mkIf hasPassword config.sops.secrets.password-hash.path;
@@ -97,6 +99,7 @@ in
     enableRedistributableFirmware = true;
     bluetooth.enable = true;
     graphics.enable = true;
+    amdgpu.opencl.enable = true;
   };
   security.rtkit.enable = true;
   programs = {

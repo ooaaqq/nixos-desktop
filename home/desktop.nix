@@ -12,6 +12,14 @@ let
       "${pkgs.rime-ice}/share/rime-data"
       ./rime
     ];
+    # OpenCC 1.4 requires the previously implicit group matching policy.
+    postBuild = ''
+      config="$out/opencc/emoji.json"
+      cp --remove-destination "${pkgs.rime-ice}/share/rime-data/opencc/emoji.json" "$config"
+      chmod u+w "$config"
+      substituteInPlace "$config" \
+        --replace-fail '"type": "group",' '"type": "group", "match_policy": "short_circuit",'
+    '';
   };
   wechatDirect = pkgs.callPackage (pkgs.path + "/pkgs/by-name/we/wechat/package.nix") {
     fetchurl =
@@ -21,6 +29,9 @@ let
         hash = "sha256-ay4g5wAGNy6N37rkDqhkVkUgyHsH0BYLYA7JP3j9XMI=";
       };
   };
+  cockpitTools = pkgs.callPackage ../pkgs/cockpit-tools.nix { };
+  davinciResolve = pkgs.callPackage ../pkgs/davinci-resolve.nix { };
+  foliaMajor = pkgs.callPackage ../pkgs/folia-major.nix { };
 in
 {
   home = {
@@ -33,13 +44,17 @@ in
     ariang
     ayugram-desktop
     bililiverecorder
-    cc-switch
-    codex-cli-nix.packages.${pkgs.system}.default
+    cockpitTools
+    codex-cli-nix.packages.${pkgs.stdenv.hostPlatform.system}.default
+    davinciResolve
+    foliaMajor
     git
     github-cli
     ghostty
+    krita
     libreoffice-stable
     mpv
+    netease-cloud-music-gtk
     obs-studio
     qq
     ripgrep
