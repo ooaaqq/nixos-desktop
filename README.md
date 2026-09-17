@@ -12,7 +12,7 @@ secrets are intentionally kept outside the public checkout:
 - `local.nix` supplies the local account, home directory, and host name.
 - `local-hardware.nix` supplies generated filesystem and hardware settings.
 - `.sops.yaml.local` supplies local encryption rules.
-- `secrets/password.yaml` and `secrets/mihomo-config` remain untracked.
+- `secrets/password.yaml` and `secrets/mihomo-subscription-url` remain untracked.
 
 The public Git tree exposes only the `example` configuration. A complete local
 checkout exposes `desktop` when all ignored machine files are present. This
@@ -51,9 +51,16 @@ third-party binary cache is declared in `hosts/desktop.nix`.
 
 ## Secrets and networking
 
-Mihomo is the only proxy core. Its configuration is decrypted by sops-nix at
-activation time and is never stored as plaintext in Git. Keep the local
-dashboard and subscription details private.
+Mihomo is the only proxy core. sops-nix decrypts its private subscription URL;
+the downloaded configuration lives in `/var/lib/mihomo-subscription/config.yaml`
+with root-only access and enters the service through systemd credentials.
+Seed this file with a validated desktop subscription before first activation.
+
+Run `sudo mihomo-update` to manually fetch and validate the desktop subscription,
+restart the core and preserve group selections. A startup failure restores the
+previous configuration. There is no update timer. Nodes, relays and routing
+policy belong to the subscription source, not this repository. Keep the local
+dashboard, subscription URL and downloaded configuration private.
 
 ## Development
 

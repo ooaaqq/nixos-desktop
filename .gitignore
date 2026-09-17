@@ -6,4 +6,5 @@ local-hardware.nix
 secrets/age-key.txt
 secrets/mihomo-config.plain
 secrets/mihomo-config
+secrets/mihomo-subscription-url
 secrets/password.yaml
