@@ -193,26 +193,23 @@ in
     };
   };
 
-  sops = lib.mkIf (hasPassword || hasMihomoSubscription) (
-    {
-      age.keyFile = local.ageKeyFile or "/var/lib/sops-nix/key.txt";
-      secrets =
-        lib.optionalAttrs hasPassword {
-          password-hash = {
-            sopsFile = ../secrets/password.yaml;
-            format = "yaml";
-            neededForUsers = true;
-          };
-        }
-        // lib.optionalAttrs hasMihomoSubscription {
-          mihomo-subscription-url = { };
+  sops = {
+    age.keyFile = local.ageKeyFile or "/var/lib/sops-nix/key.txt";
+    secrets =
+      lib.optionalAttrs hasPassword {
+        password-hash = {
+          sopsFile = ../secrets/password.yaml;
+          format = "yaml";
+          neededForUsers = true;
         };
-    }
-    // lib.optionalAttrs hasMihomoSubscription {
-      defaultSopsFile = ../secrets/mihomo-subscription-url;
-      defaultSopsFormat = "binary";
-    }
-  );
+      }
+      // lib.optionalAttrs hasMihomoSubscription {
+        mihomo-subscription-url = {
+          sopsFile = ../secrets/mihomo-subscription-url;
+          format = "binary";
+        };
+      };
+  };
 
   services.mihomo = lib.mkIf hasMihomoSubscription {
     enable = true;
