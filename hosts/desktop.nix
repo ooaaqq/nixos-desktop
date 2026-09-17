@@ -11,7 +11,7 @@ let
   homeDirectory = local.homeDirectory or "/home/desktop";
   hostName = local.hostName or "nixos-desktop";
   hasPassword = builtins.pathExists ../secrets/password.yaml;
-  hasMihomoConfig = builtins.pathExists ../secrets/mihomo-config;
+  hasMihomoSubscription = builtins.pathExists ../secrets/mihomo-subscription-url;
 in
 {
   imports = lib.optional (builtins.pathExists ../local-hardware.nix) ../local-hardware.nix;
@@ -193,7 +193,7 @@ in
     };
   };
 
-  sops = lib.mkIf (hasPassword || hasMihomoConfig) (
+  sops = lib.mkIf (hasPassword || hasMihomoSubscription) (
     {
       age.keyFile = local.ageKeyFile or "/var/lib/sops-nix/key.txt";
       secrets =
@@ -204,22 +204,34 @@ in
             neededForUsers = true;
           };
         }
-        // lib.optionalAttrs hasMihomoConfig {
-          mihomo-config = { };
+        // lib.optionalAttrs hasMihomoSubscription {
+          mihomo-subscription-url = { };
         };
     }
-    // lib.optionalAttrs hasMihomoConfig {
-      defaultSopsFile = ../secrets/mihomo-config;
+    // lib.optionalAttrs hasMihomoSubscription {
+      defaultSopsFile = ../secrets/mihomo-subscription-url;
       defaultSopsFormat = "binary";
     }
   );
 
-  services.mihomo = lib.mkIf hasMihomoConfig {
+  services.mihomo = lib.mkIf hasMihomoSubscription {
     enable = true;
-    configFile = config.sops.secrets.mihomo-config.path;
+    configFile = "/var/lib/mihomo-subscription/config.yaml";
     tunMode = true;
     webui = pkgs.metacubexd;
   };
+  environment.systemPackages = lib.optionals hasMihomoSubscription [
+    (pkgs.writeShellApplication {
+      name = "mihomo-update";
+      runtimeInputs = [
+        pkgs.mihomo
+        pkgs.systemd
+      ];
+      text = ''
+        exec ${pkgs.python3.withPackages (p: [ p.pyyaml ])}/bin/python3 ${../pkgs/mihomo-update.py} "$@"
+      '';
+    })
+  ];
   systemd.services.mihomo.serviceConfig = {
     AmbientCapabilities = lib.mkForce [
       "CAP_NET_ADMIN"

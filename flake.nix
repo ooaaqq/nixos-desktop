@@ -28,7 +28,7 @@
         "local.nix"
         "local-hardware.nix"
         "secrets/password.yaml"
-        "secrets/mihomo-config"
+        "secrets/mihomo-subscription-url"
       ];
       hasLocalConfiguration = builtins.all builtins.pathExists localFiles;
       mkDesktop = nixpkgs.lib.nixosSystem {
