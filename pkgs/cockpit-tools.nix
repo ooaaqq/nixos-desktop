@@ -6,10 +6,10 @@
 
 let
   pname = "cockpit-tools";
-  version = "1.3.53";
+  version = "1.3.58";
   src = fetchurl {
     url = "https://github.com/jlcodes99/cockpit-tools/releases/download/v${version}/Cockpit.Tools_${version}_amd64.AppImage";
-    hash = "sha256-nMAPfPBEKidsX+7kYUKnEbuQw29yh7DLfKftO1rKPRM=";
+    hash = "sha256-bVZ5FV9W3FKkqllpUCDUYxmQxA1FEjeIWeGoQlZd+2Y=";
   };
   appimageContents = appimageTools.extract {
     inherit pname version src;
