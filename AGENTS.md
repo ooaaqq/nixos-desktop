@@ -22,7 +22,8 @@ The following files are ignored and must stay out of Git:
 - `local.nix`: account, home directory, and host name for this installation.
 - `local-hardware.nix`: generated filesystem and hardware settings.
 - `.sops.yaml.local`: local SOPS creation rules.
-- `secrets/password.yaml` and `secrets/mihomo-subscription-url`: encrypted local data.
+- `secrets/password.yaml`: encrypted local data. A former
+  `secrets/mihomo-subscription-url` may remain locally during migration.
 
 Do not print, commit, or move plaintext secrets, age private keys, subscription
 URLs, or backup passwords into the repository. Public age recipient keys and
@@ -72,16 +73,17 @@ Every manually fetched source needs a fixed hash and a focused verification.
 ## Networking and secrets
 
 Mihomo is managed by the official NixOS module as the only proxy core. Keep
-its controller, subscription, and decrypted runtime files local. Do not add a
+its controller and decrypted runtime files local. Do not add a
 second core, custom wrapper service, or an external UI path under the home
 directory.
 
-The full subscription lives at `/var/lib/mihomo-subscription/config.yaml` with
-root-only access and is loaded through systemd credentials. `sudo mihomo-update`
-manually downloads, validates and activates it, retaining selections and rolling
-back on startup failure. There is no timer. Keep shared proxy policy in the
-subscription source, not in this repository. Seed the protected config before
-the first activation on a new machine.
+The active config lives at `/var/lib/mihomo-subscription/config.yaml` with
+root-only access and is loaded through systemd credentials. Generate the full
+desktop config in the private fleet repository and run
+`sudo mihomo-update /absolute/path/to/desktop.yaml` to validate and activate it.
+The updater retains selections and rolls back on startup failure. There is no
+timer. Keep shared proxy policy in the fleet repository. Seed the protected
+config before the first activation on a new machine.
 
 For incidents, start read-only: inspect unit state, logs, listeners, resolver
 configuration, and the actual traffic path before changing routing or

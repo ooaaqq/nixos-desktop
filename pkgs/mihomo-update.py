@@ -1,4 +1,4 @@
-"""Manually install a private subscription; retain working state on failure."""
+"""Manually install a local Mihomo config; retain working state on failure."""
 
 import fcntl
 import json
@@ -17,7 +17,6 @@ import yaml
 
 STATE = Path("/var/lib/mihomo-subscription")
 CONFIG = STATE / "config.yaml"
-URL_FILE = Path("/run/secrets/mihomo-subscription-url")
 API = "http://127.0.0.1:9090"
 HTTP = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
@@ -57,10 +56,7 @@ def restart():
                    capture_output=True, timeout=45)
 
 
-def update():
-    url = URL_FILE.read_text().strip()
-    if urllib.parse.urlsplit(url).scheme != "https":
-        raise RuntimeError("subscription must use HTTPS")
+def update(source):
     try:
         old_proxies = api("/proxies")["proxies"] if CONFIG.exists() else {}
     except (OSError, ValueError):
@@ -69,21 +65,18 @@ def update():
                if v.get("type") == "Selector" and "now" in v}
     with tempfile.TemporaryDirectory(prefix=".update-", dir=STATE) as tmp:
         candidate = Path(tmp) / "config.yaml"
-        # Never place the private URL in process arguments or diagnostic output.
-        with HTTP.open(url, timeout=45) as response:
-            if urllib.parse.urlsplit(response.url).scheme != "https":
-                raise RuntimeError("subscription redirected outside HTTPS")
-            content = response.read(4 * 1024 * 1024 + 1)
+        with source.open("rb") as stream:
+            content = stream.read(4 * 1024 * 1024 + 1)
         if len(content) > 4 * 1024 * 1024:
-            raise RuntimeError("subscription is too large")
+            raise RuntimeError("local config is too large")
         data = yaml.safe_load(content)
         if not isinstance(data, dict) or not data.get("proxies"):
-            raise RuntimeError("subscription has no nodes")
+            raise RuntimeError("local config has no nodes")
         if (data.get("external-controller") != "127.0.0.1:9090"
                 or data.get("dns", {}).get("listen") != "127.0.0.1:53"
                 or data.get("tun", {}).get("enable") is not True
                 or data.get("allow-lan") is not False):
-            raise RuntimeError("subscription is missing desktop networking settings")
+            raise RuntimeError("local config is missing desktop networking settings")
         candidate.write_bytes(content)
         candidate.chmod(0o600)
         # Test against cached rules without modifying the running core's files.
@@ -93,10 +86,10 @@ def update():
         result = subprocess.run(["mihomo", "-t", "-d", tmp, "-f", str(candidate)],
                                 capture_output=True, timeout=120)
         if result.returncode:
-            raise RuntimeError("Mihomo rejected subscription; active configuration retained")
+            raise RuntimeError("Mihomo rejected local config; active configuration retained")
         previous = CONFIG.read_bytes() if CONFIG.exists() else None
         if previous == content and old_proxies:
-            print("Mihomo subscription is already current.")
+            print("Mihomo config is already current.")
             return
         if previous is not None:
             backup = STATE / "previous.yaml"
@@ -120,15 +113,17 @@ def update():
 
 def main():
     if os.geteuid() != 0:
-        raise SystemExit("Run: sudo mihomo-update")
+        raise SystemExit("Run: sudo mihomo-update /absolute/path/to/desktop.yaml")
+    if len(sys.argv) != 2 or not Path(sys.argv[1]).is_absolute():
+        raise SystemExit("Run: sudo mihomo-update /absolute/path/to/desktop.yaml")
     os.umask(0o077)
     STATE.mkdir(mode=0o700, parents=True, exist_ok=True)
     with (STATE / ".update.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         try:
-            update()
+            update(Path(sys.argv[1]))
         except Exception as error:
-            # Network exceptions may contain the secret subscription URL.
+            # YAML and filesystem exceptions may contain sensitive input.
             message = str(error) if isinstance(error, RuntimeError) else type(error).__name__
             raise SystemExit(f"Mihomo update failed: {message}") from None
 
