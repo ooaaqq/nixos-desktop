@@ -21,13 +21,16 @@ let
         --replace-fail '"type": "group",' '"type": "group", "match_policy": "short_circuit",'
     '';
   };
-  wechatDirect = pkgs.callPackage (pkgs.path + "/pkgs/by-name/we/wechat/package.nix") {
-    fetchurl =
-      _:
-      pkgs.fetchurl {
-        url = "https://dldir1v6.qq.com/weixin/Universal/Linux/WeChatLinux_x86_64.AppImage";
-        hash = "sha256-T1StKQLs1vb9xWgLc1R/gNVCO/RwsBI3pXmi5bPK7us=";
-      };
+  wechatLatestVersion = "4.1.13.23";
+  wechatLatestAppImage = pkgs.fetchurl {
+    url = "https://dldir1v6.qq.com/weixin/Universal/Linux/WeChatLinux_x86_64.AppImage";
+    hash = "sha256-T1StKQLs1vb9xWgLc1R/gNVCO/RwsBI3pXmi5bPK7us=";
+  };
+  wechatDirect = pkgs.callPackage (pkgs.path + "/pkgs/by-name/we/wechat/linux.nix") {
+    pname = "wechat";
+    version = wechatLatestVersion;
+    src = wechatLatestAppImage;
+    meta = pkgs.wechat.meta;
   };
   cockpitTools = pkgs.callPackage ../pkgs/cockpit-tools.nix { };
   davinciResolve = pkgs.callPackage ../pkgs/davinci-resolve.nix { };
