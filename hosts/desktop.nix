@@ -11,7 +11,7 @@ let
   homeDirectory = local.homeDirectory or "/home/desktop";
   hostName = local.hostName or "nixos-desktop";
   hasPassword = builtins.pathExists ../secrets/password.yaml;
-  hasMihomoSubscription = builtins.pathExists ../secrets/mihomo-subscription-url;
+  hasLocalMihomo = builtins.pathExists ../local.nix && builtins.pathExists ../local-hardware.nix;
 in
 {
   imports = lib.optional (builtins.pathExists ../local-hardware.nix) ../local-hardware.nix;
@@ -195,29 +195,22 @@ in
 
   sops = {
     age.keyFile = local.ageKeyFile or "/var/lib/sops-nix/key.txt";
-    secrets =
-      lib.optionalAttrs hasPassword {
-        password-hash = {
-          sopsFile = ../secrets/password.yaml;
-          format = "yaml";
-          neededForUsers = true;
-        };
-      }
-      // lib.optionalAttrs hasMihomoSubscription {
-        mihomo-subscription-url = {
-          sopsFile = ../secrets/mihomo-subscription-url;
-          format = "binary";
-        };
+    secrets = lib.optionalAttrs hasPassword {
+      password-hash = {
+        sopsFile = ../secrets/password.yaml;
+        format = "yaml";
+        neededForUsers = true;
       };
+    };
   };
 
-  services.mihomo = lib.mkIf hasMihomoSubscription {
+  services.mihomo = lib.mkIf hasLocalMihomo {
     enable = true;
     configFile = "/var/lib/mihomo-subscription/config.yaml";
     tunMode = true;
     webui = pkgs.metacubexd;
   };
-  environment.systemPackages = lib.optionals hasMihomoSubscription [
+  environment.systemPackages = lib.optionals hasLocalMihomo [
     (pkgs.writeShellApplication {
       name = "mihomo-update";
       runtimeInputs = [
