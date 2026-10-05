@@ -50,6 +50,12 @@ Codex is supplied by the dedicated `codex-cli-nix` flake so it can follow
 upstream releases independently of the main nixpkgs update. Its public
 third-party binary cache is declared in `hosts/desktop.nix`.
 
+CC Switch is pinned separately in `pkgs/cc-switch.nix`. Its existing local
+accounts and providers remain in its private application data directory.
+The optional unified Codex session history setting can merge official and
+third-party history lists, with backup before migration; visibility does not
+guarantee that every old session can resume on a different backend.
+
 ## Secrets and networking
 
 Mihomo is the only proxy core. Its active configuration lives in

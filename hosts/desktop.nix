@@ -107,18 +107,6 @@ in
     steam.enable = true;
   };
   services.desktopManager.plasma6.enable = true;
-  services.nginx = {
-    enable = true;
-    virtualHosts."127.0.0.1" = {
-      listen = [
-        {
-          addr = "127.0.0.1";
-          port = 8765;
-        }
-      ];
-      root = "${pkgs.ariang}/share/ariang";
-    };
-  };
   environment.plasma6.excludePackages = with pkgs.kdePackages; [
     discover
     elisa

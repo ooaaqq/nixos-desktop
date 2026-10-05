@@ -32,7 +32,7 @@ let
     src = wechatLatestAppImage;
     meta = pkgs.wechat.meta;
   };
-  cockpitTools = pkgs.callPackage ../pkgs/cockpit-tools.nix { };
+  ccSwitch = pkgs.callPackage ../pkgs/cc-switch.nix { };
   davinciResolve = pkgs.callPackage ../pkgs/davinci-resolve.nix { };
   foliaMajor = pkgs.callPackage ../pkgs/folia-major.nix { };
 in
@@ -44,10 +44,9 @@ in
   };
 
   home.packages = with pkgs; [
-    ariang
     ayugram-desktop
     bililiverecorder
-    cockpitTools
+    ccSwitch
     codex-cli-nix.packages.${pkgs.stdenv.hostPlatform.system}.default
     davinciResolve
     foliaMajor
@@ -70,20 +69,6 @@ in
   ];
 
   programs = {
-    aria2 = {
-      enable = true;
-      settings = {
-        dir = "${homeDirectory}/Downloads";
-        rpc-allow-origin-all = true;
-        rpc-listen-all = false;
-        rpc-listen-port = 6800;
-        max-connection-per-server = 8;
-        min-split-size = "10M";
-        split = 8;
-        user-agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36";
-      };
-      systemd.enable = true;
-    };
     bash.enable = true;
     chromium = {
       enable = true;
@@ -146,21 +131,6 @@ in
     theme = light:Adwaita,dark:Adwaita Dark
     window-theme = system
   '';
-
-  # Serve AriaNg over the local HTTP endpoint because Chromium blocks RPC
-  # requests from the packaged file:// entry.
-  xdg.desktopEntries.ariang = {
-    name = "AriaNg";
-    comment = "Web frontend for aria2";
-    exec = "chromium --app=http://127.0.0.1:8765/";
-    icon = "ariang";
-    terminal = false;
-    type = "Application";
-    categories = [
-      "Network"
-      "WebBrowser"
-    ];
-  };
 
   # The packaged entry advertises D-Bus activation, but its D-Bus service is
   # not linked into the Home Manager profile. Launch the installed binary
