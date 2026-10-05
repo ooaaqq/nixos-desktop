@@ -56,6 +56,7 @@ in
     ghostty
     krita
     libreoffice-stable
+    micro
     mpv
     netease-cloud-music-gtk
     obs-studio
@@ -96,16 +97,11 @@ in
       enable = true;
       nix-direnv.enable = true;
     };
-    helix = {
-      enable = true;
-      package = pkgs.helix;
-      defaultEditor = true;
-      settings.theme = {
-        dark = "github_dark_high_contrast";
-        light = "github_light";
-        fallback = "github_light";
-      };
-    };
+  };
+
+  home.sessionVariables = {
+    EDITOR = "micro";
+    VISUAL = "micro";
   };
 
   xdg.mimeApps = {
