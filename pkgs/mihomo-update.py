@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -37,11 +38,14 @@ def wait_ready():
     for _ in range(30):
         try:
             config = api("/configs")
-            if not config.get("tun", {}).get("enable"):
-                raise RuntimeError("desktop TUN is disabled")
-            return api("/proxies")["proxies"]
-        except Exception:
+        except urllib.error.HTTPError:
+            raise
+        except (urllib.error.URLError, TimeoutError, ConnectionError):
             time.sleep(0.5)
+            continue
+        if not config.get("tun", {}).get("enable"):
+            raise RuntimeError("desktop TUN is disabled")
+        return api("/proxies")["proxies"]
     raise RuntimeError("Mihomo controller did not become ready")
 
 
@@ -52,8 +56,12 @@ def restore_choices(choices, proxies):
 
 
 def restart():
-    subprocess.run(["systemctl", "restart", "mihomo.service"], check=True,
-                   capture_output=True, timeout=45)
+    subprocess.run(
+        ["systemctl", "restart", "mihomo.service"],
+        check=True,
+        capture_output=True,
+        timeout=45,
+    )
 
 
 def update(source):
@@ -61,8 +69,11 @@ def update(source):
         old_proxies = api("/proxies")["proxies"] if CONFIG.exists() else {}
     except (OSError, ValueError):
         old_proxies = {}
-    choices = {k: v["now"] for k, v in old_proxies.items()
-               if v.get("type") == "Selector" and "now" in v}
+    choices = {
+        k: v["now"]
+        for k, v in old_proxies.items()
+        if v.get("type") == "Selector" and "now" in v
+    }
     with tempfile.TemporaryDirectory(prefix=".update-", dir=STATE) as tmp:
         candidate = Path(tmp) / "config.yaml"
         with source.open("rb") as stream:
@@ -72,29 +83,32 @@ def update(source):
         data = yaml.safe_load(content)
         if not isinstance(data, dict) or not data.get("proxies"):
             raise RuntimeError("local config has no nodes")
-        if (data.get("external-controller") != "127.0.0.1:9090"
-                or data.get("dns", {}).get("listen") != "127.0.0.1:53"
-                or data.get("tun", {}).get("enable") is not True
-                or data.get("allow-lan") is not False):
+        if (
+            data.get("external-controller") != "127.0.0.1:9090"
+            or data.get("dns", {}).get("listen") != "127.0.0.1:53"
+            or data.get("tun", {}).get("enable") is not True
+            or data.get("allow-lan") is not False
+        ):
             raise RuntimeError("local config is missing desktop networking settings")
+        previous = CONFIG.read_bytes() if CONFIG.exists() else None
+        if previous == content and old_proxies:
+            print("Mihomo config is already current.")
+            return
         candidate.write_bytes(content)
         candidate.chmod(0o600)
         # Test against cached rules without modifying the running core's files.
         cache = Path("/var/lib/private/mihomo/ruleset")
         if cache.is_dir():
             shutil.copytree(cache, Path(tmp) / "ruleset")
-        result = subprocess.run(["mihomo", "-t", "-d", tmp, "-f", str(candidate)],
-                                capture_output=True, timeout=120)
+        result = subprocess.run(
+            ["mihomo", "-t", "-d", tmp, "-f", str(candidate)],
+            capture_output=True,
+            timeout=120,
+        )
         if result.returncode:
-            raise RuntimeError("Mihomo rejected local config; active configuration retained")
-        previous = CONFIG.read_bytes() if CONFIG.exists() else None
-        if previous == content and old_proxies:
-            print("Mihomo config is already current.")
-            return
-        if previous is not None:
-            backup = STATE / "previous.yaml"
-            backup.write_bytes(previous)
-            backup.chmod(0o600)
+            raise RuntimeError(
+                "Mihomo rejected local config; active configuration retained"
+            )
         os.replace(candidate, CONFIG)
         try:
             restart()
@@ -106,9 +120,13 @@ def update(source):
                 os.replace(candidate, CONFIG)
                 restart()
                 restore_choices(choices, wait_ready())
-                raise RuntimeError("update failed; previous configuration restored") from None
+                raise RuntimeError(
+                    "update failed; previous configuration restored"
+                ) from None
             raise RuntimeError("initial configuration could not start") from None
-        print(f"Mihomo updated: {len(data['proxies'])} nodes; existing selections retained.")
+        print(
+            f"Mihomo updated: {len(data['proxies'])} nodes; existing selections retained."
+        )
 
 
 def main():
@@ -124,7 +142,9 @@ def main():
             update(Path(sys.argv[1]))
         except Exception as error:
             # YAML and filesystem exceptions may contain sensitive input.
-            message = str(error) if isinstance(error, RuntimeError) else type(error).__name__
+            message = (
+                str(error) if isinstance(error, RuntimeError) else type(error).__name__
+            )
             raise SystemExit(f"Mihomo update failed: {message}") from None
 
 

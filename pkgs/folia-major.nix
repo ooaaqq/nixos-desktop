@@ -35,18 +35,19 @@
 }:
 
 let
+  version = "0.7.13";
   transparentExportManifest = fetchurl {
-    url = "https://raw.githubusercontent.com/chthollyphile/folia-major/v0.7.13/mods/sample-transparent-mov-export/mod.json";
+    url = "https://raw.githubusercontent.com/chthollyphile/folia-major/v${version}/mods/sample-transparent-mov-export/mod.json";
     hash = "sha256-ZDK9SqD8PkfoczqeBgChdIx42MIpcuf3zxWn4rnZUOU=";
   };
   transparentExportEntry = fetchurl {
-    url = "https://raw.githubusercontent.com/chthollyphile/folia-major/v0.7.13/mods/sample-transparent-mov-export/index.cjs";
+    url = "https://raw.githubusercontent.com/chthollyphile/folia-major/v${version}/mods/sample-transparent-mov-export/index.cjs";
     hash = "sha256-MRfuqqBTtxgmceavcOdNNUz/2oCNIILYpArQ2Mm88SA=";
   };
 in
 stdenv.mkDerivation (finalAttrs: {
   pname = "folia-major";
-  version = "0.7.13";
+  inherit version;
 
   src = fetchurl {
     url = "https://github.com/chthollyphile/folia-major/releases/download/v${finalAttrs.version}/folia-major-${finalAttrs.version}-linux-x64.tar.gz";

@@ -1,8 +1,8 @@
 {
   pkgs,
   codex-cli-nix,
-  userName ? "desktop",
-  homeDirectory ? "/home/desktop",
+  userName,
+  homeDirectory,
   ...
 }:
 let
@@ -21,20 +21,10 @@ let
         --replace-fail '"type": "group",' '"type": "group", "match_policy": "short_circuit",'
     '';
   };
-  wechatLatestVersion = "4.1.13.23";
-  wechatLatestAppImage = pkgs.fetchurl {
-    url = "https://dldir1v6.qq.com/weixin/Universal/Linux/WeChatLinux_x86_64.AppImage";
-    hash = "sha256-T1StKQLs1vb9xWgLc1R/gNVCO/RwsBI3pXmi5bPK7us=";
-  };
-  wechatDirect = pkgs.callPackage (pkgs.path + "/pkgs/by-name/we/wechat/linux.nix") {
-    pname = "wechat";
-    version = wechatLatestVersion;
-    src = wechatLatestAppImage;
-    meta = pkgs.wechat.meta;
-  };
-  ccSwitch = pkgs.callPackage ../pkgs/cc-switch.nix { };
-  davinciResolve = pkgs.callPackage ../pkgs/davinci-resolve.nix { };
-  foliaMajor = pkgs.callPackage ../pkgs/folia-major.nix { };
+  wechat = pkgs.callPackage ../pkgs/wechat.nix { };
+  cc-switch = pkgs.callPackage ../pkgs/cc-switch.nix { };
+  folia-major = pkgs.callPackage ../pkgs/folia-major.nix { };
+
 in
 {
   home = {
@@ -46,10 +36,10 @@ in
   home.packages = with pkgs; [
     ayugram-desktop
     bililiverecorder
-    ccSwitch
+    cc-switch
     codex-cli-nix.packages.${pkgs.stdenv.hostPlatform.system}.default
-    davinciResolve
-    foliaMajor
+    davinci-resolve
+    folia-major
     git
     github-cli
     ghostty
@@ -65,7 +55,7 @@ in
     unrar
     uv
     vscode
-    wechatDirect
+    wechat
   ];
 
   programs = {
@@ -91,25 +81,14 @@ in
 
   xdg.mimeApps = {
     enable = true;
-    associations.added = {
-      "text/markdown" = [ "code.desktop" ];
-      "text/plain" = [ "code.desktop" ];
-      "x-scheme-handler/mailto" = [ "chromium-browser.desktop" ];
-      "x-scheme-handler/tg" = [ "userapp-AyuGram Desktop-FDR4S3.desktop" ];
-      "x-scheme-handler/tonsite" = [ "userapp-AyuGram Desktop-O5H4S3.desktop" ];
-    };
     defaultApplications = {
       "text/markdown" = [ "code.desktop" ];
       "text/plain" = [ "code.desktop" ];
       "x-scheme-handler/mailto" = [ "chromium-browser.desktop" ];
-      "x-scheme-handler/tg" = [ "userapp-AyuGram Desktop-FDR4S3.desktop" ];
-      "x-scheme-handler/tonsite" = [ "userapp-AyuGram Desktop-O5H4S3.desktop" ];
+      "x-scheme-handler/tg" = [ "com.ayugram.desktop.desktop" ];
+      "x-scheme-handler/tonsite" = [ "com.ayugram.desktop.desktop" ];
     };
   };
-
-  # Replace the existing Plasma-generated file when Home Manager first takes
-  # ownership of these declarative MIME associations.
-  xdg.configFile."mimeapps.list".force = true;
 
   xdg.configFile."Code/User/settings.json".text = builtins.toJSON {
     "editor.formatOnPaste" = false;

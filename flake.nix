@@ -24,12 +24,7 @@
     }:
     let
       system = "x86_64-linux";
-      localFiles = map (path: ./. + "/${path}") [
-        "local.nix"
-        "local-hardware.nix"
-        "secrets/password.yaml"
-      ];
-      hasLocalConfiguration = builtins.all builtins.pathExists localFiles;
+      pkgs = nixpkgs.legacyPackages.${system};
       mkDesktop = nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = { inherit codex-cli-nix; };
@@ -41,13 +36,35 @@
       };
     in
     {
-      formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-tree;
-
-      nixosConfigurations = {
-        example = mkDesktop;
-      }
-      // nixpkgs.lib.optionalAttrs hasLocalConfiguration {
-        desktop = mkDesktop;
+      checks.${system}.mihomo =
+        pkgs.runCommand "mihomo-update-checks"
+          {
+            src = nixpkgs.lib.fileset.toSource {
+              root = ./.;
+              fileset = nixpkgs.lib.fileset.unions [
+                ./pkgs/mihomo-update.py
+                ./tests/test_mihomo_update.py
+              ];
+            };
+            nativeBuildInputs = [ (pkgs.python3.withPackages (p: [ p.pyyaml ])) ];
+          }
+          ''
+            cp -r "$src" source
+            chmod -R u+w source
+            cd source
+            python3 -m unittest discover -s tests -p 'test_*.py'
+            touch "$out"
+          '';
+      formatter.${system} = pkgs.writeShellApplication {
+        name = "treefmt";
+        runtimeInputs = [
+          pkgs.treefmt
+          pkgs.nixfmt
+          pkgs.ruff
+        ];
+        text = ''exec treefmt "$@"'';
       };
+
+      nixosConfigurations.desktop = mkDesktop;
     };
 }

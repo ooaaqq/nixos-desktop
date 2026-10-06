@@ -6,22 +6,11 @@
   ...
 }:
 let
-  local = if builtins.pathExists ../local.nix then import ../local.nix else { };
-  userName = local.userName or "desktop";
-  homeDirectory = local.homeDirectory or "/home/desktop";
-  hostName = local.hostName or "nixos-desktop";
-  hasPassword = builtins.pathExists ../secrets/password.yaml;
-  hasLocalMihomo = builtins.pathExists ../local.nix && builtins.pathExists ../local-hardware.nix;
+  local = import ../local.nix;
+  inherit (local) userName homeDirectory hostName;
 in
 {
-  imports = lib.optional (builtins.pathExists ../local-hardware.nix) ../local-hardware.nix;
-
-  # Generic defaults keep the public configuration evaluable. The ignored
-  # local-hardware.nix provides the real devices on the installed machine.
-  fileSystems."/" = {
-    device = lib.mkDefault "/dev/disk/by-label/NIXOS_ROOT";
-    fsType = lib.mkDefault "btrfs";
-  };
+  imports = [ ../local-hardware.nix ];
 
   boot = {
     loader = {
@@ -58,7 +47,7 @@ in
   i18n.defaultLocale = "en_US.UTF-8";
 
   users = {
-    mutableUsers = !hasPassword;
+    mutableUsers = false;
     users.${userName} = {
       isNormalUser = true;
       uid = 1000;
@@ -68,7 +57,7 @@ in
         "video"
         "wheel"
       ];
-      hashedPasswordFile = lib.mkIf hasPassword config.sops.secrets.password-hash.path;
+      hashedPasswordFile = config.sops.secrets.password-hash.path;
     };
   };
   security.sudo.wheelNeedsPassword = false;
@@ -183,7 +172,7 @@ in
 
   sops = {
     age.keyFile = local.ageKeyFile or "/var/lib/sops-nix/key.txt";
-    secrets = lib.optionalAttrs hasPassword {
+    secrets = {
       password-hash = {
         sopsFile = ../secrets/password.yaml;
         format = "yaml";
@@ -192,13 +181,15 @@ in
     };
   };
 
-  services.mihomo = lib.mkIf hasLocalMihomo {
+  virtualisation.containers.enable = true;
+
+  services.mihomo = {
     enable = true;
     configFile = "/etc/mihomo/config.yaml";
     tunMode = true;
     webui = pkgs.metacubexd;
   };
-  environment.systemPackages = lib.optionals hasLocalMihomo [
+  environment.systemPackages = [
     (pkgs.writeShellApplication {
       name = "mihomo-update";
       runtimeInputs = [

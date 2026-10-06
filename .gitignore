@@ -5,3 +5,6 @@ local-hardware.nix
 .sops.yaml.local
 secrets/age-key.txt
 secrets/password.yaml
+
+__pycache__/
+*.pyc
