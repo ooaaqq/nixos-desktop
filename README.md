@@ -1,77 +1,44 @@
-# NixOS Plasma Desktop
+# NixOS 桌面
 
-Declarative NixOS and Home Manager configuration for a Plasma 6 desktop on
-Wayland. System services live in `hosts/desktop.nix`; user applications and
-desktop preferences live in `home/desktop.nix`.
+Plasma 6、Wayland 和 Home Manager 配置。
+`hosts/desktop.nix` 管理系统，`home/desktop.nix` 管理用户应用和桌面设置。
+使用 infra 工作区的开发环境。
 
-## Local machine layer
+## 本机配置
 
-Machine-specific identity, filesystem hardware, SOPS policy, and encrypted
-secrets are intentionally kept outside the public checkout:
+以下文件只保存在本机，不提交 Git：
 
-- `local.nix` supplies the local account, home directory, and host name.
-- `local-hardware.nix` supplies generated filesystem and hardware settings.
-- `.sops.yaml.local` supplies local encryption rules.
-- `secrets/password.yaml` remains untracked.
+- `local.nix`：账户、家目录和主机名。
+- `local-hardware.nix`：文件系统和硬件。
+- `.sops.yaml.local`：本机加密规则。
+- `secrets/password.yaml`：加密后的本机凭据。
 
-The public Git tree exposes only the `example` configuration. A complete local
-checkout exposes `desktop` when all ignored machine files are present. This
-fails closed: accidentally evaluating the Git-only source cannot produce an
-installable generic system in place of the real machine configuration.
+公开源码只提供 `example`；本机配置文件齐全时才提供 `desktop`。
+本机操作必须使用 `path:.`，让 Nix 读取被 Git 忽略的配置。不要激活 `example`。
 
-Never commit an age private key, plaintext secret, subscription URL, or backup
-password.
+## 检查和切换
 
-## Build and activate
-
-```bash
+```sh
+nix fmt -- --ci
 nix flake check --no-build path:.
 nix build path:.#nixosConfigurations.desktop.config.system.build.toplevel
 sudo nixos-rebuild test --flake path:.#desktop
 sudo nixos-rebuild switch --flake path:.#desktop
 ```
 
-`test` is temporary and does not survive a reboot. Reboot only when it is
-intentional and separately verified.
+`test` 是临时切换，重启后不保留。切换后检查本次修改的实际功能。
+更新系统输入用 `nix flake update`，审查 diff 后按上面步骤交付。
+Codex 由 `codex-cli-nix` 输入提供，缓存见 `hosts/desktop.nix`；CC Switch 单独固定在 `pkgs/cc-switch.nix`。
+账户和应用数据继续保存在本机。
 
-## Updates
+## Mihomo
 
-The main system follows `nixos-unstable`. Update the lock file deliberately,
-review the diff, and test before switching:
+官方 NixOS 模块运行代理，配置为 `/etc/mihomo/config.yaml`，仅 root 可读，通过 systemd credential 加载。
+新机器首次启用前需准备配置。在 infra 工作区运行：
 
-```bash
-nix flake update
-nix flake check --no-build path:.
-sudo nixos-rebuild test --flake path:.#desktop
+```sh
+infra mihomo apply
 ```
 
-Codex is supplied by the dedicated `codex-cli-nix` flake so it can follow
-upstream releases independently of the main nixpkgs update. Its public
-third-party binary cache is declared in `hosts/desktop.nix`.
-
-CC Switch is pinned separately in `pkgs/cc-switch.nix`. Its existing local
-accounts and providers remain in its private application data directory.
-The optional unified Codex session history setting can merge official and
-third-party history lists, with backup before migration; visibility does not
-guarantee that every old session can resume on a different backend.
-
-## Secrets and networking
-
-Mihomo is the only proxy core. Its active configuration lives in
-`/etc/mihomo/config.yaml` with root-only access and enters the
-service through systemd credentials. Seed this file before first activation.
-
-In the infra workspace, run `infra mihomo apply` to render the private policy and
-install it with the local `mihomo-update` tool. The updater validates configuration,
-retains group selections and restores the previous config if startup fails.
-Identical configuration skips restart. There is no update timer.
-
-The private fleet repository owns node sources and routing policy; this public
-repository owns the service and installer. See `services/mihomo/README.md` in
-fleet for configuration export to other devices. Generated YAML contains credentials.
-
-## Development
-
-Project-specific Node, Rust, Go, and native toolchains belong in each
-project's own `nix develop` environment. This desktop configuration should
-remain small and reproducible.
+该命令渲染 fleet 策略并调用本机 `mihomo-update`。安装器校验配置、保留代理组选择，启动失败时恢复旧配置；内容相同则跳过重启。
+更新策略无需重建桌面。便携导出见 fleet 的 `services/mihomo/README.md`，生成的 YAML 含凭据。

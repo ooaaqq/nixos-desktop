@@ -1,95 +1,30 @@
-# Agent Guide
+# 桌面维护
 
-This checkout is the declarative source for one NixOS Plasma 6 desktop on
-Wayland. Keep changes small, explicit, reproducible, and easy to review.
+修改前读取 infra 工作区的共同原则。本仓库只有一台 Plasma 6 / Wayland 桌面，出现实际复用需求再拆模块。
 
-## Repository shape
+## 结构与本机边界
 
-- `flake.nix`: flake inputs and the `desktop` NixOS output.
-- `hosts/desktop.nix`: system services, hardware defaults, networking, SOPS,
-  and Home Manager wiring.
-- `home/desktop.nix`: user applications, desktop preferences, and shell policy.
-- `home/rime/`: checked-in Rime customization only.
-- `README.md`: public operator documentation.
+- `hosts/desktop.nix`：系统、硬件默认值、网络、SOPS 和 Home Manager 接入。
+- `home/desktop.nix`：用户应用、桌面和 Shell 设置。
+- `home/rime/`：Rime 自定义配置。
+- README：本机配置、检查和切换命令。
 
-The repository deliberately has one host and no speculative module framework.
-Extract shared modules only when a second host or a real reuse case exists.
+`local.nix`、`local-hardware.nix`、`.sops.yaml.local` 和 `secrets/password.yaml` 保持 Git 忽略。
+公开源码只含通用配置，账户路径、主机身份、文件系统、恢复挂载、机器 UUID 和 age recipient 放在本机层。
+明文凭据、age 私钥、订阅 URL、备份密码和本机诊断产物不进入 Git。
 
-## Local-only layer
+## 修改流程
 
-The following files are ignored and must stay out of Git:
+先检查工作树并保留无关改动。Nix 改动按 README 完成格式、求值和构建检查，再激活已授权的修改。
+必须使用 `path:.` 读取本机层；普通 Git flake 不能静默生成可安装的通用桌面。
+不激活 `example`，不擅自重启，切换后验证受影响的实际行为。
 
-- `local.nix`: account, home directory, and host name for this installation.
-- `local-hardware.nix`: generated filesystem and hardware settings.
-- `.sops.yaml.local`: local SOPS creation rules.
-- `secrets/password.yaml`: encrypted local data.
+## 应用与网络
 
-Do not print, commit, or move plaintext secrets, age private keys, subscription
-URLs, or backup passwords into the repository. Public age recipient keys and
-machine UUIDs are not needed by the public configuration and should remain in
-the local layer as well.
+普通应用放 Home Manager，Steam 放系统层。项目工具链放项目开发环境，不扩大全局桌面依赖。
+系统跟随 `nixos-unstable`；需更快更新的应用使用独立包或输入，下载固定版本或 revision 与哈希。
+Codex 使用 `codex-cli-nix` 及其已声明的缓存，单个应用更新不替换整个系统输入。
 
-## Change workflow
-
-Inspect the worktree before editing and preserve unrelated changes. For Nix
-changes, run:
-
-```bash
-nix fmt -- --ci
-nix flake check --no-build path:.
-nix build path:.#nixosConfigurations.desktop.config.system.build.toplevel
-```
-
-Only activate an authorized change after evaluation and build checks pass:
-
-```bash
-sudo nixos-rebuild test --flake path:.#desktop
-sudo nixos-rebuild switch --flake path:.#desktop
-```
-
-`test` is temporary. Do not reboot unless explicitly requested. A successful
-evaluation or build is not proof that a service is healthy; check the affected
-runtime behavior after activation.
-
-The `path:.` prefix is mandatory because ignored local files are excluded from
-Git-backed flake evaluation. Never activate `.#example`. A plain `.#desktop`
-must fail rather than silently use generic identity or filesystem defaults.
-
-## Package policy
-
-Keep ordinary applications in Home Manager and keep Steam at the system layer.
-Project-specific Node, Rust, Go, and native toolchains belong in project
-flakes, not the global desktop closure.
-
-The main system follows `nixos-unstable`. Applications that need a faster
-release cadence should use a focused package or flake input. Codex uses the
-dedicated `codex-cli-nix` package and its documented third-party cache; do not
-replace the whole system input just to update one application.
-
-Avoid mutable nightly URLs when an immutable release or commit is available.
-Every manually fetched source needs a fixed hash and a focused verification.
-
-## Networking and secrets
-
-Mihomo is managed by the official NixOS module as the only proxy core. Keep
-its controller and decrypted runtime files local. Do not add a
-second core, custom wrapper service, or an external UI path under the home
-directory.
-
-The active config lives at `/etc/mihomo/config.yaml` with
-root-only access and is loaded through systemd credentials. Run `infra mihomo apply` from the infra workspace to render the private fleet
-policy and validate and activate it through the local installer.
-The updater retains selections and rolls back on startup failure. There is no
-timer. Keep shared proxy policy in the fleet repository. Seed the protected
-config before the first activation on a new machine.
-
-For incidents, start read-only: inspect unit state, logs, listeners, resolver
-configuration, and the actual traffic path before changing routing or
-restarting services.
-
-## Public repository boundary
-
-The public branch contains only generic configuration and documentation. Do
-not add personal paths, host identifiers, filesystem layout, recovery mounts,
-credentials, or local diagnostic artifacts. The local ignored layer is the
-place for machine-specific values.
+Mihomo 使用官方模块。fleet 管策略，本仓库管服务和安装器，配置路径及更新命令见 README。
+控制器和解密配置只在本机使用，保留 root 权限和 systemd credential，不添加第二个代理核心或更新定时器。
+网络故障先查看 unit、日志、监听端口、解析器和实际流量路径，再修改路由或重启服务。
