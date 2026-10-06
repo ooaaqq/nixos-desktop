@@ -4,7 +4,4 @@ local.nix
 local-hardware.nix
 .sops.yaml.local
 secrets/age-key.txt
-secrets/mihomo-config.plain
-secrets/mihomo-config
-secrets/mihomo-subscription-url
 secrets/password.yaml

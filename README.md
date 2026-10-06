@@ -12,8 +12,7 @@ secrets are intentionally kept outside the public checkout:
 - `local.nix` supplies the local account, home directory, and host name.
 - `local-hardware.nix` supplies generated filesystem and hardware settings.
 - `.sops.yaml.local` supplies local encryption rules.
-- `secrets/password.yaml` remains untracked. The former
-  `secrets/mihomo-subscription-url` is no longer used by the desktop config.
+- `secrets/password.yaml` remains untracked.
 
 The public Git tree exposes only the `example` configuration. A complete local
 checkout exposes `desktop` when all ignored machine files are present. This
@@ -59,7 +58,7 @@ guarantee that every old session can resume on a different backend.
 ## Secrets and networking
 
 Mihomo is the only proxy core. Its active configuration lives in
-`/var/lib/mihomo-subscription/config.yaml` with root-only access and enters the
+`/etc/mihomo/config.yaml` with root-only access and enters the
 service through systemd credentials. Seed this file before first activation.
 
 In the infra workspace, run `infra mihomo apply` to render the private policy and

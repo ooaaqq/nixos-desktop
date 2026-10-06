@@ -194,7 +194,7 @@ in
 
   services.mihomo = lib.mkIf hasLocalMihomo {
     enable = true;
-    configFile = "/var/lib/mihomo-subscription/config.yaml";
+    configFile = "/etc/mihomo/config.yaml";
     tunMode = true;
     webui = pkgs.metacubexd;
   };

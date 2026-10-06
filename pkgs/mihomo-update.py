@@ -15,7 +15,7 @@ import urllib.request
 import yaml
 
 
-STATE = Path("/var/lib/mihomo-subscription")
+STATE = Path("/etc/mihomo")
 CONFIG = STATE / "config.yaml"
 API = "http://127.0.0.1:9090"
 HTTP = urllib.request.build_opener(urllib.request.ProxyHandler({}))

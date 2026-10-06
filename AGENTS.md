@@ -22,8 +22,7 @@ The following files are ignored and must stay out of Git:
 - `local.nix`: account, home directory, and host name for this installation.
 - `local-hardware.nix`: generated filesystem and hardware settings.
 - `.sops.yaml.local`: local SOPS creation rules.
-- `secrets/password.yaml`: encrypted local data. A former
-  `secrets/mihomo-subscription-url` may remain locally during migration.
+- `secrets/password.yaml`: encrypted local data.
 
 Do not print, commit, or move plaintext secrets, age private keys, subscription
 URLs, or backup passwords into the repository. Public age recipient keys and
@@ -77,7 +76,7 @@ its controller and decrypted runtime files local. Do not add a
 second core, custom wrapper service, or an external UI path under the home
 directory.
 
-The active config lives at `/var/lib/mihomo-subscription/config.yaml` with
+The active config lives at `/etc/mihomo/config.yaml` with
 root-only access and is loaded through systemd credentials. Run `infra mihomo apply` from the infra workspace to render the private fleet
 policy and validate and activate it through the local installer.
 The updater retains selections and rolls back on startup failure. There is no
