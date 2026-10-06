@@ -62,12 +62,14 @@ Mihomo is the only proxy core. Its active configuration lives in
 `/var/lib/mihomo-subscription/config.yaml` with root-only access and enters the
 service through systemd credentials. Seed this file before first activation.
 
-Generate `desktop.yaml` in the private fleet repository, then run
-`sudo mihomo-update /absolute/path/to/desktop.yaml` to validate and install it.
-The updater restarts Mihomo, preserves group selections, and restores the
-previous configuration if startup fails. There is no update timer. Nodes and
-routing policy belong to the fleet repository. Keep the generated configuration
-and local dashboard private.
+In the infra workspace, run `infra mihomo apply` to render the private policy and
+install it with the local `mihomo-update` tool. The updater validates configuration,
+retains group selections and restores the previous config if startup fails.
+Identical configuration skips restart. There is no update timer.
+
+The private fleet repository owns node sources and routing policy; this public
+repository owns the service and installer. See `services/mihomo/README.md` in
+fleet for configuration export to other devices. Generated YAML contains credentials.
 
 ## Development
 
