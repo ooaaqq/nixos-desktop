@@ -23,10 +23,13 @@ infra check nixos-desktop
 sudo nixos-rebuild switch --flake path:.#desktop
 ```
 
-`switch` 完成构建并切换。切换后检查本次修改的实际功能。调查时可以用 `nix build` 单独构建，或用 `nixos-rebuild test` 临时切换。更新系统输入用
+`switch` 完成构建并切换。切换后检查本次修改的实际功能。调查时可以用 `nix build`
+单独构建，或用 `nixos-rebuild test` 临时切换。更新系统输入用
 `nix flake update`，审查 diff 后按上面步骤交付。 Codex 由 `codex-cli-nix`
 输入提供，缓存见 `hosts/desktop.nix`；CC Switch 单独固定在
-`pkgs/cc-switch.nix`。 账户和应用数据继续保存在本机。系统提供原生 `/etc/containers` 配置，Podman 等维护工具由工作区环境提供。
+`pkgs/cc-switch.nix`。 账户和应用数据继续保存在本机。系统提供原生
+`/etc/containers` 配置和 `nix-ld`，供工作区容器工具及 npm 锁定的 Linux
+二进制使用。维护工具由工作区环境提供。
 
 ## Mihomo
 
