@@ -78,9 +78,8 @@ second core, custom wrapper service, or an external UI path under the home
 directory.
 
 The active config lives at `/var/lib/mihomo-subscription/config.yaml` with
-root-only access and is loaded through systemd credentials. Generate the full
-desktop config in the private fleet repository and run
-`sudo mihomo-update /absolute/path/to/desktop.yaml` to validate and activate it.
+root-only access and is loaded through systemd credentials. Run `infra mihomo apply` from the infra workspace to render the private fleet
+policy and validate and activate it through the local installer.
 The updater retains selections and rolls back on startup failure. There is no
 timer. Keep shared proxy policy in the fleet repository. Seed the protected
 config before the first activation on a new machine.
