@@ -14,11 +14,11 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "cc-switch";
-  version = "4.0.3";
+  version = "4.0.4";
 
   src = fetchurl {
     url = "https://github.com/farion1231/cc-switch/releases/download/v${finalAttrs.version}/CC-Switch-v${finalAttrs.version}-Linux-x86_64.deb";
-    hash = "sha256-QuDiIcw4YPbVHJUj3QqWjwn8wbuXwHfF2x+0ApM73No=";
+    hash = "sha256-QZMHITPrHBCNdfmAXvupEUDxjqz4MbSEnTg34qcNubo=";
   };
 
   nativeBuildInputs = [
