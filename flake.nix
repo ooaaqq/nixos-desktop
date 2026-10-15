@@ -3,10 +3,6 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    bililiverecorder = {
-      url = "github:NixOS/nixpkgs?ref=refs/pull/562619/head";
-      flake = false;
-    };
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -21,7 +17,6 @@
   outputs =
     {
       nixpkgs,
-      bililiverecorder,
       home-manager,
       sops-nix,
       codex-cli-nix,
@@ -35,15 +30,6 @@
         specialArgs = { inherit codex-cli-nix; };
         modules = [
           home-manager.nixosModules.home-manager
-          {
-            nixpkgs.overlays = [
-              (final: _: {
-                bililiverecorder = final.callPackage (
-                  bililiverecorder + "/pkgs/by-name/bi/bililiverecorder/package.nix"
-                ) { };
-              })
-            ];
-          }
           sops-nix.nixosModules.sops
           ./hosts/desktop.nix
         ];
