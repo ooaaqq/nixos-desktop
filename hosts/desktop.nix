@@ -8,6 +8,8 @@
 let
   local = import ../local.nix;
   inherit (local) userName homeDirectory hostName;
+  mihomo = pkgs.callPackage ../pkgs/mihomo/package.nix { };
+  mihomoTools = pkgs.callPackage ../pkgs/mihomo { inherit mihomo; };
 in
 {
   imports = [ ../local-hardware.nix ];
@@ -186,23 +188,14 @@ in
 
   services.mihomo = {
     enable = true;
+    package = mihomo;
     configFile = "/etc/mihomo/config.yaml";
     tunMode = true;
     webui = pkgs.metacubexd;
   };
-  environment.systemPackages = [
-    (pkgs.writeShellApplication {
-      name = "mihomo-update";
-      runtimeInputs = [
-        pkgs.mihomo
-        pkgs.systemd
-      ];
-      text = ''
-        exec ${pkgs.python3.withPackages (p: [ p.pyyaml ])}/bin/python3 ${../pkgs/mihomo-update.py} "$@"
-      '';
-    })
-  ];
+  environment.systemPackages = [ mihomoTools ];
   systemd.services.mihomo.serviceConfig = {
+    ExecStartPost = "${mihomoTools}/bin/mihomo-ready";
     AmbientCapabilities = lib.mkForce [
       "CAP_NET_ADMIN"
       "CAP_NET_BIND_SERVICE"

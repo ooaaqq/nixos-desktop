@@ -1,4 +1,4 @@
-"""Manually install a local Mihomo config; retain working state on failure."""
+"""Mihomo startup readiness and manual local configuration installation."""
 
 import fcntl
 import json
@@ -34,19 +34,23 @@ def api(path, payload=None):
         return json.loads(body) if body else None
 
 
-def wait_ready():
-    for _ in range(30):
+def check_startup():
+    deadline = time.monotonic() + 30
+    while True:
         try:
             config = api("/configs")
+            if not config.get("tun", {}).get("enable"):
+                raise RuntimeError("desktop TUN is disabled")
+            proxies = api("/proxies")["proxies"]
+            if not isinstance(proxies, dict) or not proxies:
+                raise RuntimeError("Mihomo has no loaded proxies")
+            return
         except urllib.error.HTTPError:
-            raise
+            raise RuntimeError("Mihomo controller rejected startup check") from None
         except (urllib.error.URLError, TimeoutError, ConnectionError):
+            if time.monotonic() >= deadline:
+                raise RuntimeError("Mihomo controller did not become ready") from None
             time.sleep(0.5)
-            continue
-        if not config.get("tun", {}).get("enable"):
-            raise RuntimeError("desktop TUN is disabled")
-        return api("/proxies")["proxies"]
-    raise RuntimeError("Mihomo controller did not become ready")
 
 
 def restore_choices(choices, proxies):
@@ -112,14 +116,14 @@ def update(source):
         os.replace(candidate, CONFIG)
         try:
             restart()
-            restore_choices(choices, wait_ready())
+            restore_choices(choices, api("/proxies")["proxies"])
         except Exception:
             if previous is not None:
                 candidate.write_bytes(previous)
                 candidate.chmod(0o600)
                 os.replace(candidate, CONFIG)
                 restart()
-                restore_choices(choices, wait_ready())
+                restore_choices(choices, api("/proxies")["proxies"])
                 raise RuntimeError(
                     "update failed; previous configuration restored"
                 ) from None
@@ -130,16 +134,29 @@ def update(source):
 
 
 def main():
+    if sys.argv[1:] == ["ready"]:
+        try:
+            check_startup()
+        except Exception as error:
+            message = (
+                str(error) if isinstance(error, RuntimeError) else type(error).__name__
+            )
+            raise SystemExit(f"Mihomo startup failed: {message}") from None
+        return
     if os.geteuid() != 0:
         raise SystemExit("Run: sudo mihomo-update /absolute/path/to/desktop.yaml")
-    if len(sys.argv) != 2 or not Path(sys.argv[1]).is_absolute():
+    if (
+        len(sys.argv) != 3
+        or sys.argv[1] != "update"
+        or not Path(sys.argv[2]).is_absolute()
+    ):
         raise SystemExit("Run: sudo mihomo-update /absolute/path/to/desktop.yaml")
     os.umask(0o077)
     STATE.mkdir(mode=0o700, parents=True, exist_ok=True)
     with (STATE / ".update.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         try:
-            update(Path(sys.argv[1]))
+            update(Path(sys.argv[2]))
         except Exception as error:
             # YAML and filesystem exceptions may contain sensitive input.
             message = (

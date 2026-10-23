@@ -2,13 +2,14 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
+import urllib.error
 
 import yaml
 
 
 spec = importlib.util.spec_from_file_location(
-    "updater", Path(__file__).resolve().parents[1] / "pkgs/mihomo-update.py"
+    "updater", Path(__file__).with_name("mihomo.py")
 )
 updater = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(updater)
@@ -74,7 +75,6 @@ class UpdateTests(unittest.TestCase):
             patch.object(
                 updater, "restart", side_effect=[RuntimeError("failed"), None]
             ) as restart,
-            patch.object(updater, "wait_ready", return_value=self.api["proxies"]),
             patch.object(updater, "restore_choices") as restore,
         ):
             with self.assertRaisesRegex(
@@ -93,7 +93,6 @@ class UpdateTests(unittest.TestCase):
             patch.object(updater, "api", return_value=self.api),
             patch.object(updater.subprocess, "run", return_value=Mock(returncode=0)),
             patch.object(updater, "restart"),
-            patch.object(updater, "wait_ready", return_value=self.api["proxies"]),
             patch.object(updater, "restore_choices") as restore,
         ):
             updater.update(self.write_source())
@@ -102,6 +101,61 @@ class UpdateTests(unittest.TestCase):
         restore.assert_called_once_with(
             {"GOOGLE": "HK", "OPENAI": "MY"}, self.api["proxies"]
         )
+
+
+class StartupTests(unittest.TestCase):
+    def test_waits_for_controller_and_loaded_proxies(self):
+        with (
+            patch.object(
+                updater,
+                "api",
+                side_effect=[
+                    urllib.error.URLError("starting"),
+                    {"tun": {"enable": True}},
+                    {"proxies": {"node": {"type": "Direct"}}},
+                ],
+            ) as api,
+            patch.object(updater.time, "sleep") as sleep,
+        ):
+            updater.check_startup()
+        self.assertEqual(
+            api.call_args_list, [call("/configs"), call("/configs"), call("/proxies")]
+        )
+        sleep.assert_called_once_with(0.5)
+
+    def test_disabled_tun_fails_without_retry(self):
+        with (
+            patch.object(updater, "api", return_value={"tun": {"enable": False}}),
+            patch.object(updater.time, "sleep") as sleep,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "TUN is disabled"):
+                updater.check_startup()
+        sleep.assert_not_called()
+
+    def test_rejected_controller_request_fails_without_retry(self):
+        with (
+            patch.object(
+                updater,
+                "api",
+                side_effect=urllib.error.HTTPError(
+                    updater.API, 403, "Forbidden", {}, None
+                ),
+            ),
+            patch.object(updater.time, "sleep") as sleep,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "rejected startup check"):
+                updater.check_startup()
+        sleep.assert_not_called()
+
+    def test_controller_startup_has_a_deadline(self):
+        with (
+            patch.object(updater, "api", side_effect=urllib.error.URLError("starting")),
+            patch.object(updater.time, "monotonic", side_effect=[0, 30]),
+            patch.object(updater.time, "sleep") as sleep,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "did not become ready"):
+                updater.check_startup()
+        sleep.assert_not_called()
 
 
 if __name__ == "__main__":
