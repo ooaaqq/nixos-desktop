@@ -52,6 +52,7 @@ in
     mutableUsers = false;
     users.${userName} = {
       isNormalUser = true;
+      shell = pkgs.fish;
       uid = 1000;
       extraGroups = [
         "networkmanager"
@@ -94,7 +95,9 @@ in
   };
   security.rtkit.enable = true;
   programs = {
+    fish.enable = true;
     kdeconnect.enable = true;
+    kde-pim.enable = false;
     steam.enable = true;
   };
   services.desktopManager.plasma6.enable = true;
@@ -104,13 +107,12 @@ in
     gwenview
     kate
     khelpcenter
+    konsole
     okular
     plasma-browser-integration
-    kwin-x11
     krdp
     plasma-keyboard
     qtvirtualkeyboard
-    union
     dolphin-plugins
     ffmpegthumbs
   ];
@@ -132,30 +134,36 @@ in
         fcitx5-gtk
         fcitx5-rime
       ];
-      settings.addons.classicui.globalSection = {
-        Theme = "plasma";
-        DarkTheme = "plasma";
-        UseDarkTheme = "True";
-        UseAccentColor = "True";
-      };
-      settings.inputMethod = {
-        "Groups/0" = {
-          Name = "Default";
-          "Default Layout" = "us";
-          DefaultIM = "rime";
-        };
-        "Groups/0/Items/0" = {
-          Name = "rime";
-          Layout = "";
-        };
-        GroupOrder."0" = "Default";
-      };
     };
   };
 
+  # KWin must pass its input-method socket to Fcitx on Wayland.
+  environment.etc = {
+    "xdg/kwinrc".text = ''
+      [Wayland]
+      InputMethod[$i]=${config.i18n.inputMethod.package}/share/applications/org.fcitx.Fcitx5.desktop
+    '';
+    "xdg/autostart/org.fcitx.Fcitx5.desktop".text = ''
+      [Desktop Entry]
+      Hidden=true
+    '';
+  };
+
   fonts = {
-    packages = with pkgs; [ nerd-fonts.jetbrains-mono ];
-    fontconfig.defaultFonts = {
+    enableDefaultPackages = false;
+    # Keep one font set, including the fonts otherwise added by Plasma.
+    packages =
+      with pkgs;
+      lib.mkForce [
+        noto-fonts
+        # Static collections preserve CJK face and weight selection in Chromium.
+        (noto-fonts-cjk-sans.override { static = true; })
+        (noto-fonts-cjk-serif.override { static = true; })
+        noto-fonts-color-emoji
+        maple-mono.NF-CN
+        liberation_ttf
+      ];
+    fontconfig.defaultFonts = lib.mkForce {
       sansSerif = [
         "Noto Sans"
         "Noto Sans CJK SC"
@@ -164,10 +172,7 @@ in
         "Noto Serif"
         "Noto Serif CJK SC"
       ];
-      monospace = [
-        "JetBrainsMono Nerd Font"
-        "Noto Sans Mono CJK SC"
-      ];
+      monospace = [ "Maple Mono NF CN" ];
       emoji = [ "Noto Color Emoji" ];
     };
   };
@@ -239,7 +244,13 @@ in
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
-    extraSpecialArgs = { inherit codex-cli-nix userName homeDirectory; };
+    extraSpecialArgs = {
+      inherit
+        codex-cli-nix
+        userName
+        homeDirectory
+        ;
+    };
     users.${userName} = import ../home/desktop.nix;
   };
 

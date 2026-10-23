@@ -7,7 +7,6 @@
 
 - `hosts/desktop.nix`：系统、硬件默认值、网络、SOPS 和 Home Manager 接入。
 - `home/desktop.nix`：用户应用、桌面和 Shell 设置。
-- `home/rime/`：Rime 自定义配置。
 - README：本机配置、检查和切换命令。
 
 `local.nix`、`local-hardware.nix`、`.sops.yaml.local` 和 `secrets/password.yaml`
