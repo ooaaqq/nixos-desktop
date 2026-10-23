@@ -46,7 +46,12 @@ in
     git
     github-cli
     ghostty
+    kdePackages.akonadi
+    kdePackages.akonadi-search
     kdePackages.gwenview
+    kdePackages.kdepim-runtime
+    kdePackages.kmail
+    kdePackages.kmail-account-wizard
     krita
     laplace-persona
     libreoffice-stable
@@ -57,7 +62,6 @@ in
     qq
     ripgrep
     spotify
-    thunderbird
     unrar
     vscode
     wechat

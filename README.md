@@ -52,8 +52,8 @@ fish 个人函数放在 `~/.config/fish/functions/`，个人启动设置放在
 Firefox 使用锁定 nixpkgs 提供的 `pkgs.firefox` 普通版，通过应用菜单或
 `firefox` 启动；浏览器个人设置、扩展和资料由 Firefox 管理。
 
-Thunderbird 通过应用菜单或 `thunderbird` 启动；邮箱账户、邮件和阅读偏好由应用管理，
-在应用中添加账户并选择统一文件夹视图可集中查看多个邮箱。
+KMail 通过应用菜单或 `kmail` 启动，Home Manager 同时安装 Akonadi、邮件资源和账户向导。
+邮箱账户、邮件、索引和阅读偏好由应用管理，系统切换不覆盖这些数据。
 
 AyuGram 和 Ghostty 使用安装包提供的桌面入口与 D-Bus 激活服务。
 Fcitx5 的输入法分组、默认输入法和外观通过配置界面调整，分别保存在
