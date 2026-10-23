@@ -52,6 +52,9 @@ fish 个人函数放在 `~/.config/fish/functions/`，个人启动设置放在
 Firefox 使用锁定 nixpkgs 提供的 `pkgs.firefox` 普通版，通过应用菜单或
 `firefox` 启动；浏览器个人设置、扩展和资料由 Firefox 管理。
 
+Thunderbird 通过应用菜单或 `thunderbird` 启动；邮箱账户、邮件和阅读偏好由应用管理，
+在应用中添加账户并选择统一文件夹视图可集中查看多个邮箱。
+
 AyuGram 和 Ghostty 使用安装包提供的桌面入口与 D-Bus 激活服务。
 Fcitx5 的输入法分组、默认输入法和外观通过配置界面调整，分别保存在
 `~/.config/fcitx5/profile` 和 `~/.config/fcitx5/conf/classicui.conf`；系统只安装

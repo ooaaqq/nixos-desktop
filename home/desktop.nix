@@ -57,6 +57,7 @@ in
     qq
     ripgrep
     spotify
+    thunderbird
     unrar
     vscode
     wechat
