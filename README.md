@@ -112,6 +112,7 @@ infra mihomo apply
 
 该命令渲染 fleet 策略并调用本机
 `mihomo-update`。systemd 在启动阶段检查控制器、TUN 开关和代理加载状态。
-安装器校验配置，等待服务启动成功后恢复代理组选择；启动失败时恢复旧配置，内容相同则跳过重启。
+安装器校验配置并等待服务启动；代理组选择由 Mihomo 的 `profile.store-selected` 持久化。
+启动失败时恢复旧配置，内容相同则跳过重启。
 更新策略无需重建桌面。便携导出见 fleet 的 `services/mihomo/README.md`，生成的
 YAML 含凭据。

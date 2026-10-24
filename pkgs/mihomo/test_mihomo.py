@@ -68,14 +68,13 @@ class UpdateTests(unittest.TestCase):
         restart.assert_not_called()
         self.assertEqual(self.config.read_bytes(), self.original)
 
-    def test_failed_start_rolls_back_and_restores_independent_choices(self):
+    def test_failed_start_rolls_back(self):
         with (
             patch.object(updater, "api", return_value=self.api),
             patch.object(updater.subprocess, "run", return_value=Mock(returncode=0)),
             patch.object(
                 updater, "restart", side_effect=[RuntimeError("failed"), None]
             ) as restart,
-            patch.object(updater, "restore_choices") as restore,
         ):
             with self.assertRaisesRegex(
                 RuntimeError, "previous configuration restored"
@@ -83,24 +82,17 @@ class UpdateTests(unittest.TestCase):
                 updater.update(self.write_source())
         self.assertEqual(restart.call_count, 2)
         self.assertEqual(self.config.read_bytes(), self.original)
-        restore.assert_called_once_with(
-            {"GOOGLE": "HK", "OPENAI": "MY"}, self.api["proxies"]
-        )
 
-    def test_success_keeps_choices(self):
+    def test_success_installs_private_config(self):
         content = yaml.safe_dump(self.data).encode()
         with (
             patch.object(updater, "api", return_value=self.api),
             patch.object(updater.subprocess, "run", return_value=Mock(returncode=0)),
             patch.object(updater, "restart"),
-            patch.object(updater, "restore_choices") as restore,
         ):
             updater.update(self.write_source())
         self.assertEqual(self.config.read_bytes(), content)
         self.assertEqual(self.config.stat().st_mode & 0o777, 0o600)
-        restore.assert_called_once_with(
-            {"GOOGLE": "HK", "OPENAI": "MY"}, self.api["proxies"]
-        )
 
 
 class StartupTests(unittest.TestCase):

@@ -10,7 +10,6 @@ import sys
 import tempfile
 import time
 import urllib.error
-import urllib.parse
 import urllib.request
 
 import yaml
@@ -53,12 +52,6 @@ def check_startup():
             time.sleep(0.5)
 
 
-def restore_choices(choices, proxies):
-    for name, selected in choices.items():
-        if selected in proxies.get(name, {}).get("all", []):
-            api("/proxies/" + urllib.parse.quote(name, safe=""), {"name": selected})
-
-
 def restart():
     subprocess.run(
         ["systemctl", "restart", "mihomo.service"],
@@ -73,11 +66,6 @@ def update(source):
         old_proxies = api("/proxies")["proxies"] if CONFIG.exists() else {}
     except (OSError, ValueError):
         old_proxies = {}
-    choices = {
-        k: v["now"]
-        for k, v in old_proxies.items()
-        if v.get("type") == "Selector" and "now" in v
-    }
     with tempfile.TemporaryDirectory(prefix=".update-", dir=STATE) as tmp:
         candidate = Path(tmp) / "config.yaml"
         with source.open("rb") as stream:
@@ -116,20 +104,18 @@ def update(source):
         os.replace(candidate, CONFIG)
         try:
             restart()
-            restore_choices(choices, api("/proxies")["proxies"])
         except Exception:
             if previous is not None:
                 candidate.write_bytes(previous)
                 candidate.chmod(0o600)
                 os.replace(candidate, CONFIG)
                 restart()
-                restore_choices(choices, api("/proxies")["proxies"])
                 raise RuntimeError(
                     "update failed; previous configuration restored"
                 ) from None
             raise RuntimeError("initial configuration could not start") from None
         print(
-            f"Mihomo updated: {len(data['proxies'])} nodes; existing selections retained."
+            f"Mihomo updated: {len(data['proxies'])} nodes; selections managed by Mihomo."
         )
 
 
