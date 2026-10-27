@@ -52,6 +52,10 @@ fish 个人函数放在 `~/.config/fish/functions/`，个人启动设置放在
 Firefox 使用锁定 nixpkgs 提供的 `pkgs.firefox` 普通版，通过应用菜单或
 `firefox` 启动；浏览器个人设置、扩展和资料由 Firefox 管理。
 
+SPlayer-Next 统一播放网易云音乐、QQ 音乐和本地音乐。`pkgs/splayer-next.nix`
+固定官方 Linux 安装包和校验哈希，通过应用菜单或 `SPlayer-Next` 启动。
+账号登录、歌单、音质和缓存设置由应用管理；更新后需在应用中核对实际播放音质。
+
 KMail 通过应用菜单或 `kmail` 启动，Home Manager 同时安装 Akonadi、邮件资源和账户向导。
 邮箱账户、邮件、索引和阅读偏好由应用管理，系统切换不覆盖这些数据。
 
@@ -102,8 +106,8 @@ KDE 的个人字体选择通过系统设置调整，保存在 `~/.config/kdeglob
 
 ## Mihomo
 
-官方 NixOS 模块运行代理，版本和 Go 依赖哈希固定在
-`pkgs/mihomo/package.nix`。配置为 `/etc/mihomo/config.yaml`，仅 root 可读，通过
+官方 NixOS 模块使用 nixpkgs 提供的 Mihomo 包运行代理。配置为
+`/etc/mihomo/config.yaml`，仅 root 可读，通过
 systemd credential 加载。新机器首次启用前需准备配置。在 infra 工作区运行：
 
 ```sh
@@ -111,8 +115,9 @@ infra mihomo apply
 ```
 
 该命令渲染 fleet 策略并调用本机
-`mihomo-update`。systemd 在启动阶段检查控制器、TUN 开关和代理加载状态。
+`mihomo-update`。systemd 在启动阶段最多等待 30 秒，确认控制器、TUN 开关和代理加载就绪；
+控制器先于配置加载启动，首次响应时 TUN 可能尚未开启。
 安装器校验配置并等待服务启动；代理组选择由 Mihomo 的 `profile.store-selected` 持久化。
-启动失败时恢复旧配置，内容相同则跳过重启。
+启动失败时恢复旧配置；内容相同且服务就绪时跳过重启，否则校验配置后重新启动。
 更新策略无需重建桌面。便携导出见 fleet 的 `services/mihomo/README.md`，生成的
 YAML 含凭据。

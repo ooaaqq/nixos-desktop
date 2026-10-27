@@ -25,7 +25,6 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-      mihomo = pkgs.callPackage ./pkgs/mihomo/package.nix { };
       mkDesktop = nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = { inherit codex-cli-nix; };
@@ -37,7 +36,7 @@
       };
     in
     {
-      checks.${system}.mihomo = (pkgs.callPackage ./pkgs/mihomo { inherit mihomo; }).tests;
+      checks.${system}.mihomo = (pkgs.callPackage ./pkgs/mihomo { }).tests;
       formatter.${system} = pkgs.writeShellApplication {
         name = "treefmt";
         runtimeInputs = [

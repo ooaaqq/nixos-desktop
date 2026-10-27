@@ -24,6 +24,7 @@ let
   cc-switch = pkgs.callPackage ../pkgs/cc-switch.nix { };
   folia-major = pkgs.callPackage ../pkgs/folia-major.nix { };
   laplace-persona = pkgs.callPackage ../pkgs/laplace-persona.nix { };
+  splayer-next = pkgs.callPackage ../pkgs/splayer-next.nix { };
 
 in
 {
@@ -57,11 +58,11 @@ in
     libreoffice-stable
     micro
     mpv
-    netease-cloud-music-gtk
     obs-studio
     qq
     ripgrep
     spotify
+    splayer-next
     unrar
     vscode
     wechat

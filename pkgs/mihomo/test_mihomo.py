@@ -94,6 +94,43 @@ class UpdateTests(unittest.TestCase):
         self.assertEqual(self.config.read_bytes(), content)
         self.assertEqual(self.config.stat().st_mode & 0o777, 0o600)
 
+    def test_unchanged_config_skips_restart_only_when_ready(self):
+        source = self.write_source()
+        self.config.write_bytes(source.read_bytes())
+        with (
+            patch.object(
+                updater,
+                "api",
+                side_effect=[{"tun": {"enable": True}}, self.api],
+            ),
+            patch.object(updater.subprocess, "run") as run,
+            patch.object(updater, "restart") as restart,
+        ):
+            updater.update(source)
+        run.assert_not_called()
+        restart.assert_not_called()
+
+    def test_unchanged_config_recovers_unready_service(self):
+        source = self.write_source()
+        content = source.read_bytes()
+        self.config.write_bytes(content)
+        for responses in (
+            [urllib.error.URLError("stopped")],
+            [{"tun": {"enable": False}}],
+            [{"tun": {"enable": True}}, {"proxies": {}}],
+        ):
+            with (
+                self.subTest(responses=responses),
+                patch.object(updater, "api", side_effect=responses),
+                patch.object(
+                    updater.subprocess, "run", return_value=Mock(returncode=0)
+                ),
+                patch.object(updater, "restart") as restart,
+            ):
+                updater.update(source)
+                restart.assert_called_once_with()
+                self.assertEqual(self.config.read_bytes(), content)
+
 
 class StartupTests(unittest.TestCase):
     def test_waits_for_controller_and_loaded_proxies(self):
@@ -109,34 +146,77 @@ class StartupTests(unittest.TestCase):
             ) as api,
             patch.object(updater.time, "sleep") as sleep,
         ):
-            updater.check_startup()
+            updater.wait_for_startup()
         self.assertEqual(
             api.call_args_list, [call("/configs"), call("/configs"), call("/proxies")]
         )
         sleep.assert_called_once_with(0.5)
 
-    def test_disabled_tun_fails_without_retry(self):
-        with (
-            patch.object(updater, "api", return_value={"tun": {"enable": False}}),
-            patch.object(updater.time, "sleep") as sleep,
-        ):
-            with self.assertRaisesRegex(RuntimeError, "TUN is disabled"):
-                updater.check_startup()
-        sleep.assert_not_called()
-
-    def test_rejected_controller_request_fails_without_retry(self):
+    def test_controller_can_respond_before_tun_and_proxies_are_ready(self):
         with (
             patch.object(
                 updater,
                 "api",
-                side_effect=urllib.error.HTTPError(
-                    updater.API, 403, "Forbidden", {}, None
-                ),
+                side_effect=[
+                    {"tun": {"enable": False}},
+                    {"tun": {"enable": True}},
+                    {"proxies": {}},
+                    {"tun": {"enable": True}},
+                    {"proxies": {"node": {"type": "Direct"}}},
+                ],
+            ) as api,
+            patch.object(updater.time, "sleep") as sleep,
+        ):
+            updater.wait_for_startup()
+        self.assertEqual(
+            api.call_args_list,
+            [
+                call("/configs"),
+                call("/configs"),
+                call("/proxies"),
+                call("/configs"),
+                call("/proxies"),
+            ],
+        )
+        self.assertEqual(sleep.call_args_list, [call(0.5), call(0.5)])
+
+    def test_disabled_tun_fails_at_deadline(self):
+        with (
+            patch.object(updater, "api", return_value={"tun": {"enable": False}}),
+            patch.object(updater.time, "monotonic", side_effect=[0, 30]),
+            patch.object(updater.time, "sleep") as sleep,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "TUN is disabled"):
+                updater.wait_for_startup()
+        sleep.assert_not_called()
+
+    def test_empty_proxies_fail_at_deadline(self):
+        with (
+            patch.object(
+                updater,
+                "api",
+                side_effect=[{"tun": {"enable": True}}, {"proxies": {}}],
+            ),
+            patch.object(updater.time, "monotonic", side_effect=[0, 30]),
+            patch.object(updater.time, "sleep") as sleep,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "no loaded proxies"):
+                updater.wait_for_startup()
+        sleep.assert_not_called()
+
+    def test_rejected_controller_request_fails_without_retry(self):
+        error = urllib.error.HTTPError(updater.API, 403, "Forbidden", {}, None)
+        self.addCleanup(error.close)
+        with (
+            patch.object(
+                updater,
+                "api",
+                side_effect=error,
             ),
             patch.object(updater.time, "sleep") as sleep,
         ):
             with self.assertRaisesRegex(RuntimeError, "rejected startup check"):
-                updater.check_startup()
+                updater.wait_for_startup()
         sleep.assert_not_called()
 
     def test_controller_startup_has_a_deadline(self):
@@ -146,7 +226,7 @@ class StartupTests(unittest.TestCase):
             patch.object(updater.time, "sleep") as sleep,
         ):
             with self.assertRaisesRegex(RuntimeError, "did not become ready"):
-                updater.check_startup()
+                updater.wait_for_startup()
         sleep.assert_not_called()
 
 

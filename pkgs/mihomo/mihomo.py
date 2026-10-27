@@ -19,37 +19,38 @@ STATE = Path("/etc/mihomo")
 CONFIG = STATE / "config.yaml"
 API = "http://127.0.0.1:9090"
 HTTP = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+STARTUP_TIMEOUT = 30
 
 
-def api(path, payload=None):
-    request = urllib.request.Request(
-        API + path,
-        data=json.dumps(payload).encode() if payload is not None else None,
-        method="PUT" if payload is not None else "GET",
-        headers={"Content-Type": "application/json"},
-    )
-    with HTTP.open(request, timeout=3) as response:
-        body = response.read()
-        return json.loads(body) if body else None
+def api(path):
+    with HTTP.open(API + path, timeout=3) as response:
+        return json.load(response)
 
 
-def check_startup():
-    deadline = time.monotonic() + 30
+def startup_problem():
+    if not api("/configs").get("tun", {}).get("enable"):
+        return "desktop TUN is disabled"
+    proxies = api("/proxies")["proxies"]
+    if not isinstance(proxies, dict) or not proxies:
+        return "Mihomo has no loaded proxies"
+    return None
+
+
+def wait_for_startup():
+    deadline = time.monotonic() + STARTUP_TIMEOUT
     while True:
         try:
-            config = api("/configs")
-            if not config.get("tun", {}).get("enable"):
-                raise RuntimeError("desktop TUN is disabled")
-            proxies = api("/proxies")["proxies"]
-            if not isinstance(proxies, dict) or not proxies:
-                raise RuntimeError("Mihomo has no loaded proxies")
-            return
+            pending = startup_problem()
+            if pending is None:
+                return
         except urllib.error.HTTPError:
             raise RuntimeError("Mihomo controller rejected startup check") from None
         except (urllib.error.URLError, TimeoutError, ConnectionError):
-            if time.monotonic() >= deadline:
-                raise RuntimeError("Mihomo controller did not become ready") from None
-            time.sleep(0.5)
+            pending = "Mihomo controller did not become ready"
+        # The controller starts before ApplyConfig has enabled TUN and loaded proxies.
+        if time.monotonic() >= deadline:
+            raise RuntimeError(pending) from None
+        time.sleep(0.5)
 
 
 def restart():
@@ -57,15 +58,11 @@ def restart():
         ["systemctl", "restart", "mihomo.service"],
         check=True,
         capture_output=True,
-        timeout=45,
+        timeout=STARTUP_TIMEOUT + 15,
     )
 
 
 def update(source):
-    try:
-        old_proxies = api("/proxies")["proxies"] if CONFIG.exists() else {}
-    except (OSError, ValueError):
-        old_proxies = {}
     with tempfile.TemporaryDirectory(prefix=".update-", dir=STATE) as tmp:
         candidate = Path(tmp) / "config.yaml"
         with source.open("rb") as stream:
@@ -83,9 +80,14 @@ def update(source):
         ):
             raise RuntimeError("local config is missing desktop networking settings")
         previous = CONFIG.read_bytes() if CONFIG.exists() else None
-        if previous == content and old_proxies:
-            print("Mihomo config is already current.")
-            return
+        if previous == content:
+            try:
+                ready = startup_problem() is None
+            except (OSError, ValueError):
+                ready = False
+            if ready:
+                print("Mihomo config is already current and service is ready.")
+                return
         candidate.write_bytes(content)
         candidate.chmod(0o600)
         # Test against cached rules without modifying the running core's files.
@@ -122,7 +124,7 @@ def update(source):
 def main():
     if sys.argv[1:] == ["ready"]:
         try:
-            check_startup()
+            wait_for_startup()
         except Exception as error:
             message = (
                 str(error) if isinstance(error, RuntimeError) else type(error).__name__

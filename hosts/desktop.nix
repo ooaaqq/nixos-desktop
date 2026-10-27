@@ -8,8 +8,7 @@
 let
   local = import ../local.nix;
   inherit (local) userName homeDirectory hostName;
-  mihomo = pkgs.callPackage ../pkgs/mihomo/package.nix { };
-  mihomoTools = pkgs.callPackage ../pkgs/mihomo { inherit mihomo; };
+  mihomoTools = pkgs.callPackage ../pkgs/mihomo { };
 in
 {
   imports = [ ../local-hardware.nix ];
@@ -193,7 +192,6 @@ in
 
   services.mihomo = {
     enable = true;
-    package = mihomo;
     configFile = "/etc/mihomo/config.yaml";
     tunMode = true;
     webui = pkgs.metacubexd;
