@@ -47,6 +47,7 @@ in
     git
     github-cli
     ghostty
+    hmcl
     kdePackages.akonadi
     kdePackages.akonadi-search
     kdePackages.gwenview

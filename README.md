@@ -73,6 +73,11 @@ Rime 的个人方案选择、候选页大小和快捷键在
 `~/.local/share/fcitx5/rime/*.custom.yaml` 中维护。方案和词库随系统安装，个人配置、
 学习数据和部署结果保存在用户目录。
 
+## Minecraft
+
+HMCL 通过应用菜单或 `hmcl` 启动，自带 NixOS 所需的 Java 和图形运行库。
+游戏版本、离线昵称、服务器列表和游戏设置由 HMCL 与 Minecraft 管理，系统切换不覆盖。
+
 ## 字体
 
 `hosts/desktop.nix` 显式管理字体包及默认字体，关闭 NixOS 默认字体包，并替换
