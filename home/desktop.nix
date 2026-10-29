@@ -56,7 +56,6 @@ in
     kdePackages.kmail-account-wizard
     krita
     laplace-persona
-    libreoffice-stable
     micro
     mpv
     obs-studio
