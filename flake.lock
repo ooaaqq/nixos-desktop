@@ -40,11 +40,11 @@
     "fleet-config": {
       "flake": false,
       "locked": {
-        "lastModified": 1793261695,
-        "narHash": "sha256-PT/MWM4Q/Apzr845SlRUUUd9OOtbRA396/v2WGTVUrw=",
+        "lastModified": 1793263257,
+        "narHash": "sha256-8lX1C5+btSIuB3TsHQX0ihCZ0k0UMFzl1y2HN0kQ/1Q=",
         "owner": "ooaaqq",
         "repo": "nixos-server-fleet",
-        "rev": "51143c4974693c2abbcbff6db8b8274f9d0df0f4",
+        "rev": "fc4135af00684d967566ddde1d9b5d9e4f6e7fc7",
         "type": "github"
       },
       "original": {
