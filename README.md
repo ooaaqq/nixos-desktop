@@ -33,6 +33,10 @@ sudo nixos-rebuild switch --flake path:.#desktop
 
 ## 应用设置
 
+EasyTier 使用 `fleet-config` 输入维护的共享 P2P 网络，固定地址 `10.77.0.22`。
+组网口令由 root-only 的 `/var/lib/easytier/network.env` 提供，Mihomo 策略从 fleet 更新。
+拓扑与操作说明见 [fleet EasyTier 文档](https://github.com/ooaaqq/nixos-server-fleet/blob/main/services/easytier/README.md)。
+
 VS Code 通过设置界面或 `~/.config/Code/User/settings.json` 调整；Ghostty 通过
 `~/.config/ghostty/config` 调整，使用随包提供的 GitHub Light Default / GitHub Dark
 Default 主题并跟随系统明暗偏好；等宽字体跟随系统，启动 fish，窗口装饰由 KWin

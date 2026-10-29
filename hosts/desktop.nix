@@ -3,6 +3,7 @@
   codex-cli-nix,
   lib,
   pkgs,
+  fleetConfig,
   ...
 }:
 let
@@ -11,7 +12,15 @@ let
   mihomoTools = pkgs.callPackage ../pkgs/mihomo { };
 in
 {
-  imports = [ ../local-hardware.nix ];
+  imports = [
+    ../local-hardware.nix
+    "${fleetConfig}/services/easytier/shared.nix"
+  ];
+
+  services.easytier = {
+    enable = true;
+    instances.infra.settings.ipv4 = "10.77.0.22/24";
+  };
 
   boot = {
     loader = {

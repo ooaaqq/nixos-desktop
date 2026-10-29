@@ -2,6 +2,10 @@
   description = "NixOS Plasma desktop configuration";
 
   inputs = {
+    fleet-config = {
+      url = "github:ooaaqq/nixos-server-fleet";
+      flake = false;
+    };
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     home-manager = {
       url = "github:nix-community/home-manager";
@@ -20,6 +24,7 @@
       home-manager,
       sops-nix,
       codex-cli-nix,
+      fleet-config,
       ...
     }:
     let
@@ -27,7 +32,10 @@
       pkgs = nixpkgs.legacyPackages.${system};
       mkDesktop = nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = { inherit codex-cli-nix; };
+        specialArgs = {
+          inherit codex-cli-nix;
+          fleetConfig = fleet-config;
+        };
         modules = [
           home-manager.nixosModules.home-manager
           sops-nix.nixosModules.sops
