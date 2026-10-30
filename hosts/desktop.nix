@@ -10,6 +10,7 @@ let
   local = import ../local.nix;
   inherit (local) userName homeDirectory hostName;
   mihomoTools = pkgs.callPackage ../pkgs/mihomo { };
+  beam = pkgs.callPackage ../pkgs/beam.nix { };
 in
 {
   imports = [
@@ -102,6 +103,11 @@ in
     amdgpu.opencl.enable = true;
   };
   security.rtkit.enable = true;
+  security.polkit.enablePkexecWrapper = true;
+  # Beam verifies regular files at these upstream paths before recording input.
+  system.activationScripts.beam-input-helper.text = ''
+    ${beam}/lib/beam/resources/input-helper/beam-input-helper-${beam.version} install
+  '';
   programs = {
     fish.enable = true;
     kdeconnect.enable = true;
@@ -205,7 +211,13 @@ in
     tunMode = true;
     webui = pkgs.metacubexd;
   };
-  environment.systemPackages = [ mihomoTools ];
+  environment.systemPackages = [
+    mihomoTools
+    (pkgs.runCommand "beam-input-policy" { } ''
+      mkdir -p "$out/share"
+      ln -s ${beam}/share/polkit-1 "$out/share/polkit-1"
+    '')
+  ];
   systemd.services.mihomo.serviceConfig = {
     ExecStartPost = "${mihomoTools}/bin/mihomo-ready";
     AmbientCapabilities = lib.mkForce [

@@ -77,6 +77,18 @@ Rime 的个人方案选择、候选页大小和快捷键在
 `~/.local/share/fcitx5/rime/*.custom.yaml` 中维护。方案和词库随系统安装，个人配置、
 学习数据和部署结果保存在用户目录。
 
+## Beam 录屏
+
+通过应用菜单的 Beam 或 `beam` 启动，使用 Studio 模式录制和编辑教程，
+调整鼠标平滑、点击动效及自动缩放，导出视频。`pkgs/beam.nix` 固定官方 Linux
+安装包及哈希，并提供 FFmpeg 和剪贴板依赖。
+
+录屏通过 KDE 的屏幕共享选择器授权，使用 Portal 和 PipeWire；应用窗口按上游
+要求使用 XWayland。系统激活时调用官方输入助手安装器，维护其要求的
+`/usr/libexec/beam-input-helper` 和 Polkit 策略，并启用 NixOS 的 setuid `pkexec`
+包装器，以记录点击和快捷键。
+录制项目、导出文件和个人设置由 Beam 管理。
+
 ## Minecraft
 
 HMCL 通过应用菜单或 `hmcl` 启动，自带 NixOS 所需的 Java 和图形运行库。

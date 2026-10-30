@@ -20,6 +20,7 @@ let
         --replace-fail '"type": "group",' '"type": "group", "match_policy": "short_circuit",'
     '';
   };
+  beam = pkgs.callPackage ../pkgs/beam.nix { };
   wechat = pkgs.callPackage ../pkgs/wechat.nix { };
   cc-switch = pkgs.callPackage ../pkgs/cc-switch.nix { };
   folia-major = pkgs.callPackage ../pkgs/folia-major.nix { };
@@ -39,6 +40,7 @@ in
 
   home.packages = with pkgs; [
     ayugram-desktop
+    beam
     bililiverecorder
     cc-switch
     codex-cli-nix.packages.${pkgs.stdenv.hostPlatform.system}.default
